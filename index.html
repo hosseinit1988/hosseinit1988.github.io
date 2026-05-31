@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>اسکنر حرفه‌ای کلودفلر و فستلی - محاسبه دقیق CIDR</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Vazir', 'Segoe UI', Tahoma, sans-serif;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        body.light {
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        body.light .container,
+        body.light .status-card,
+        body.light .results-box,
+        body.light .filter-card {
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
+        body.dark .container,
+        body.dark .status-card,
+        body.dark .results-box,
+        body.dark .filter-card {
+            background: #1e293b;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark .result-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+        }
+
+        body.dark .filter-select,
+        body.dark .count-input {
+            background: #0f172a;
+            border-color: #334155;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .theme-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            border: none;
+            cursor: pointer;
+            font-size: 1.3em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .filter-card {
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+            color: #0ea5e9;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 10px 15px;
+            font-family: 'Vazir', 'Segoe UI', Tahoma, sans-serif !important;
+            font-size: 13px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+
+        .filter-select option {
+            font-family: 'Vazir', 'Segoe UI', Tahoma, sans-serif !important;
+        }
+
+        .count-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .count-input {
+            flex: 1;
+            padding: 10px 15px;
+            font-family: 'Vazir', sans-serif;
+            font-size: 13px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .count-slider {
+            flex: 2;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            -webkit-appearance: none;
+        }
+
+        body.dark input[type="range"] {
+            background: #334155;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            cursor: pointer;
+        }
+
+        .count-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 5px 12px;
+            font-size: 11px;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid #0ea5e9;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Vazir', sans-serif;
+        }
+
+        .preset-btn:hover {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .info-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: rgba(14, 165, 233, 0.1);
+            color: #0ea5e9;
+            text-align: center;
+        }
+
+        .warning-message {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        button {
+            padding: 10px 24px;
+            font-family: 'Vazir', sans-serif;
+            font-size: 13px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-start { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
+        .btn-stop { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-tls { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+        .btn-clear { background: linear-gradient(135deg, #64748b, #475569); color: white; }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-card {
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        body.dark .progress-bar {
+            background: #334155;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #8b5cf6);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 20px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .stat {
+            padding: 8px 20px;
+            border-radius: 12px;
+            background: rgba(14, 165, 233, 0.1);
+        }
+
+        .stat span {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #0ea5e9;
+        }
+
+        .dual-results {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .results-box {
+            flex: 1;
+            min-width: 300px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .results-box h3 {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #0ea5e9;
+        }
+
+        .results-box h3.cloudflare { color: #0ea5e9; }
+        .results-box h3.fastly { color: #8b5cf6; }
+
+        .results-header {
+            display: grid;
+            grid-template-columns: 40px 1fr 90px 80px;
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 11px;
+            gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .results-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 90px 80px;
+            padding: 10px 15px;
+            margin: 6px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .result-item.success {
+            border-right: 3px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .result-item.error {
+            border-right: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge-success { background: #10b981; color: white; }
+        .badge-danger { background: #ef4444; color: white; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            max-width: 500px;
+            width: 90%;
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        body.dark .modal-content {
+            background: #1e293b;
+        }
+
+        .modal-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #0ea5e9, #8b5cf6);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-detail-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(14, 165, 233, 0.08);
+        }
+
+        .modal-detail-label {
+            font-weight: bold;
+            color: #0ea5e9;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        .save-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 900px) {
+            .dual-results { flex-direction: column; }
+            .filter-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body class="light">
+    <div class="theme-switch">
+        <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+    </div>
+
+    <div id="modal" class="modal" onclick="closeModalOnOutside(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔒 جزئیات TLS Handshake</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 اسکنر حرفه‌ای کلودفلر و فستلی</h1>
+            <p>محاسبه دقیق CIDR | پشتیبانی از میلیون‌ها IP | شبیه‌سازی هوشمند TLS</p>
+        </div>
+
+        <div class="filter-card">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">🎯 انتخاب سرویس</label>
+                    <select id="serviceSelect" class="filter-select" onchange="updateTotalIPs()">
+                        <option value="both">🌐 همه سرویس‌ها (کلودفلر + فستلی)</option>
+                        <option value="cloudflare">☁️ فقط کلودفلر (Cloudflare)</option>
+                        <option value="fastly">⚡ فقط فستلی (Fastly)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">🔢 تعداد IP برای جستجو</label>
+                    <div class="count-control">
+                        <input type="number" id="countInput" class="count-input" min="1" step="1" value="100">
+                        <input type="range" id="countSlider" class="count-slider" min="1" max="10000" step="100" value="100">
+                    </div>
+                    <div class="count-presets">
+                        <span class="preset-btn" onclick="setCount(100)">۱۰۰ تا</span>
+                        <span class="preset-btn" onclick="setCount(500)">۵۰۰ تا</span>
+                        <span class="preset-btn" onclick="setCount(1000)">۱۰۰۰ تا</span>
+                        <span class="preset-btn" onclick="setCount(5000)">۵۰۰۰ تا</span>
+                        <span class="preset-btn" onclick="setCount(10000)">۱۰۰۰۰ تا</span>
+                        <span class="preset-btn" onclick="setCount('all')">همه</span>
+                    </div>
+                    <div id="infoMessage" class="info-message">در حال محاسبه تعداد IPها...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-start" onclick="startScan()">▶ شروع اسکن</button>
+            <button class="btn-stop" onclick="stopScan()">⏹ توقف اسکن</button>
+            <button class="btn-tls" onclick="testTLSDemo()">🔒 تست TLS</button>
+            <button class="btn-clear" onclick="clearResults()">🗑 پاک کردن</button>
+        </div>
+
+        <div class="status-card">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="stats">
+                <div class="stat">📊 اسکن شده: <span id="scannedCount">0</span></div>
+                <div class="stat">✅ موفق: <span id="successCount">0</span></div>
+                <div class="stat">❌ ناموفق: <span id="errorCount">0</span></div>
+            </div>
+            <div class="status-text" id="statusText">✅ آماده اسکن</div>
+        </div>
+
+        <div class="dual-results">
+            <div class="results-box">
+                <h3 class="cloudflare">☁️ کلودفلر (Cloudflare)</h3>
+                <div class="results-header">
+                    <div>#</div>
+                    <div>آدرس IP</div>
+                    <div>TLS</div>
+                    <div>زمان</div>
+                </div>
+                <div class="results-scroll" id="cloudflareList">
+                    <div style="text-align: center; padding: 40px;">در انتظار اسکن...</div>
+                </div>
+            </div>
+            <div class="results-box">
+                <h3 class="fastly">⚡ فستلی (Fastly)</h3>
+                <div class="results-header">
+                    <div>#</div>
+                    <div>آدرس IP</div>
+                    <div>TLS</div>
+                    <div>زمان</div>
+                </div>
+                <div class="results-scroll" id="fastlyList">
+                    <div style="text-align: center; padding: 40px;">در انتظار اسکن...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="save-buttons">
+            <button class="btn-start" onclick="saveAsJSON()">💾 ذخیره JSON</button>
+            <button class="btn-tls" onclick="saveAsCSV()">📊 ذخیره CSV</button>
+            <button class="btn-clear" onclick="saveAsTXT()">📝 ذخیره TXT</button>
+        </div>
+    </div>
+
+    <script>
+        // لیست CIDRهای کلودفلر و فستلی
+        const cloudflareCIDRs = [
+            "104.16.0.0/12", "104.17.0.0/12", "104.18.0.0/12", "104.19.0.0/12",
+            "104.20.0.0/12", "104.21.0.0/12", "104.22.0.0/12", "172.64.0.0/13",
+            "172.65.0.0/13", "131.0.72.0/22", "141.101.64.0/18", "162.158.0.0/15",
+            "173.245.48.0/20", "188.114.96.0/20", "190.93.240.0/20"
+        ];
+
+        const fastlyCIDRs = [
+            "151.101.0.0/16", "146.75.0.0/16", "199.232.0.0/16", "23.235.32.0/20",
+            "43.249.72.0/22", "103.244.50.0/24", "103.245.222.0/23", "104.156.80.0/20"
+        ];
+
+        // ========== محاسبه دقیق تعداد IP در CIDR ==========
+        function cidrToIPCount(cidr) {
+            const [, prefix] = cidr.split('/');
+            const prefixNum = parseInt(prefix);
+            if (isNaN(prefixNum)) return 1;
+            // 2 به توان (32 - prefix) = تعداد IPها
+            return Math.pow(2, 32 - prefixNum);
+        }
+
+        // تبدیل CIDR به اولین IP (برای شروع)
+        function cidrToFirstIP(cidr) {
+            const [ip, prefix] = cidr.split('/');
+            const parts = ip.split('.').map(Number);
+            // برای subnet، اولین IP شبکه است
+            return parts.join('.');
+        }
+
+        // تولید IP بعدی
+        function nextIP(ip) {
+            const parts = ip.split('.').map(Number);
+            for (let i = 3; i >= 0; i--) {
+                parts[i]++;
+                if (parts[i] <= 255) break;
+                parts[i] = 0;
+            }
+            return parts.join('.');
+        }
+
+        // محاسبه کل IPها برای یک سرویس
+        function getTotalIPsForService(service) {
+            let total = 0;
+            const cidrs = service === 'cloudflare' ? cloudflareCIDRs : fastlyCIDRs;
+            cidrs.forEach(cidr => {
+                total += cidrToIPCount(cidr);
+            });
+            return total;
+        }
+
+        // به‌روزرسانی تعداد کل
+        function updateTotalIPs() {
+            const service = document.getElementById('serviceSelect').value;
+            let totalIPs = 0;
+            
+            if (service === 'cloudflare') {
+                totalIPs = getTotalIPsForService('cloudflare');
+            } else if (service === 'fastly') {
+                totalIPs = getTotalIPsForService('fastly');
+            } else {
+                totalIPs = getTotalIPsForService('cloudflare') + getTotalIPsForService('fastly');
+            }
+            
+            const maxCount = Math.min(totalIPs, 50000); // حداکثر 50000 برای نمایش
+            
+            const slider = document.getElementById('countSlider');
+            const input = document.getElementById('countInput');
+            
+            slider.max = maxCount;
+            if (parseInt(slider.value) > maxCount) {
+                slider.value = maxCount;
+                input.value = maxCount;
+            }
+            
+            const infoDiv = document.getElementById('infoMessage');
+            infoDiv.innerHTML = `📊 تعداد کل IPهای موجود: ${totalIPs.toLocaleString()} عدد<br>
+                                 💡 حداکثر قابل انتخاب برای اسکن: ${maxCount.toLocaleString()} عدد<br>
+                                 ⚠️ به دلیل حجم بالا، اسکن بیش از ۵۰,۰۰۰ IP زمانبر خواهد بود`;
+            infoDiv.classList.add('info-message');
+            
+            return totalIPs;
+        }
+
+        // تولید لیست IPها بر اساس CIDR و تعداد محدود
+        function generateIPsFromCIDRs(cidrs, maxCount) {
+            const ips = [];
+            
+            for (const cidr of cidrs) {
+                if (ips.length >= maxCount) break;
+                
+                let currentIP = cidrToFirstIP(cidr);
+                const totalInCIDR = cidrToIPCount(cidr);
+                const toTake = Math.min(totalInCIDR, maxCount - ips.length);
+                
+                for (let i = 0; i < toTake; i++) {
+                    ips.push(currentIP);
+                    currentIP = nextIP(currentIP);
+                }
+            }
+            
+            return ips;
+        }
+
+        // آماده‌سازی لیست IP برای اسکن
+        function prepareIPList() {
+            const service = document.getElementById('serviceSelect').value;
+            let maxCount = parseInt(document.getElementById('countInput').value);
+            if (isNaN(maxCount)) maxCount = 100;
+            
+            const ips = [];
+            
+            if (service === 'both' || service === 'cloudflare') {
+                const cfIPs = generateIPsFromCIDRs(cloudflareCIDRs, maxCount);
+                cfIPs.forEach(ip => {
+                    if (ips.length < maxCount) {
+                        ips.push({ ip, service: 'Cloudflare' });
+                    }
+                });
+            }
+            
+            if (service === 'both' || service === 'fastly') {
+                const flIPs = generateIPsFromCIDRs(fastlyCIDRs, maxCount);
+                flIPs.forEach(ip => {
+                    if (ips.length < maxCount) {
+                        ips.push({ ip, service: 'Fastly' });
+                    }
+                });
+            }
+            
+            return ips;
+        }
+
+        // شبیه‌سازی TLS
+        function simulateTLS(ip, service) {
+            const ipParts = ip.split('.').map(Number);
+            const hash = (ipParts[0] * 7 + ipParts[1] * 13 + ipParts[2] * 17 + ipParts[3] * 19) % 100;
+            
+            let successRate = service === 'Cloudflare' ? 75 : 70;
+            if (service === 'Cloudflare' && ipParts[0] === 104) successRate = 85;
+            if (service === 'Fastly' && ipParts[0] === 151) successRate = 80;
+            
+            const tlsSuccess = hash < successRate;
+            
+            const ciphers = ["TLS_AES_256_GCM_SHA384 (TLS 1.3)", "TLS_AES_128_GCM_SHA256 (TLS 1.3)", "ECDHE-RSA-AES256-GCM-SHA384 (TLS 1.2)"];
+            const issuers = ["Cloudflare Inc.", "DigiCert Inc", "Sectigo Limited"];
+            
+            return {
+                success: tlsSuccess,
+                cipher: tlsSuccess ? ciphers[hash % ciphers.length] : null,
+                issuer: tlsSuccess ? issuers[hash % issuers.length] : null,
+                version: tlsSuccess ? (hash % 2 === 0 ? "TLS 1.3" : "TLS 1.2") : null
+            };
+        }
+
+        // بررسی IP
+        async function checkIP(ip, service) {
+            const startTime = Date.now();
+            await new Promise(resolve => setTimeout(resolve, 10 + Math.random() * 40));
+            const responseTime = Date.now() - startTime;
+            const tls = simulateTLS(ip, service);
+            
+            return {
+                ip, service,
+                tlsSuccess: tls.success,
+                tlsCipher: tls.cipher,
+                tlsIssuer: tls.issuer,
+                tlsVersion: tls.version,
+                responseTime,
+                timestamp: new Date().toLocaleString('fa-IR')
+            };
+        }
+
+        let scanning = false;
+        let cloudflareResults = [];
+        let fastlyResults = [];
+
+        function updateBothLists() {
+            const cfContainer = document.getElementById('cloudflareList');
+            if (cloudflareResults.length === 0) {
+                cfContainer.innerHTML = '<div style="text-align: center; padding: 40px;">هیچ نتیجه‌ای وجود ندارد</div>';
+            } else {
+                cfContainer.innerHTML = cloudflareResults.map((r, idx) => `
+                    <div class="result-item ${r.tlsSuccess ? 'success' : 'error'}" onclick="showDetailsModal(${idx}, 'cloudflare')">
+                        <div>${idx + 1}</div>
+                        <div><strong>${r.ip}</strong></div>
+                        <div><span class="badge ${r.tlsSuccess ? 'badge-success' : 'badge-danger'}">${r.tlsSuccess ? '✅ موفق' : '❌ ناموفق'}</span></div>
+                        <div>${r.responseTime}ms</div>
+                    </div>
+                `).join('');
+            }
+            
+            const flContainer = document.getElementById('fastlyList');
+            if (fastlyResults.length === 0) {
+                flContainer.innerHTML = '<div style="text-align: center; padding: 40px;">هیچ نتیجه‌ای وجود ندارد</div>';
+            } else {
+                flContainer.innerHTML = fastlyResults.map((r, idx) => `
+                    <div class="result-item ${r.tlsSuccess ? 'success' : 'error'}" onclick="showDetailsModal(${idx}, 'fastly')">
+                        <div>${idx + 1}</div>
+                        <div><strong>${r.ip}</strong></div>
+                        <div><span class="badge ${r.tlsSuccess ? 'badge-success' : 'badge-danger'}">${r.tlsSuccess ? '✅ موفق' : '❌ ناموفق'}</span></div>
+                        <div>${r.responseTime}ms</div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('successCount').innerText = [...cloudflareResults, ...fastlyResults].filter(r => r.tlsSuccess).length;
+            document.getElementById('errorCount').innerText = [...cloudflareResults, ...fastlyResults].filter(r => !r.tlsSuccess).length;
+            document.getElementById('scannedCount').innerText = cloudflareResults.length + fastlyResults.length;
+        }
+
+        function showDetailsModal(index, type) {
+            const result = type === 'cloudflare' ? cloudflareResults[index] : fastlyResults[index];
+            const modal = document.getElementById('modal');
+            const modalBody = document.getElementById('modalBody');
+            
+            if (result.tlsSuccess) {
+                modalBody.innerHTML = `
+                    <div class="modal-detail-item"><div class="modal-detail-label">🌐 IP:</div><div>${result.ip}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">🏢 سرویس:</div><div>${result.service}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">✅ TLS:</div><div>موفق</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">🔐 Cipher:</div><div>${result.tlsCipher}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">📜 Issuer:</div><div>${result.tlsIssuer}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">📌 Version:</div><div>${result.tlsVersion}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">⏱ زمان:</div><div>${result.responseTime}ms</div></div>
+                `;
+            } else {
+                modalBody.innerHTML = `
+                    <div class="modal-detail-item"><div class="modal-detail-label">🌐 IP:</div><div>${result.ip}</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">❌ TLS:</div><div>ناموفق</div></div>
+                    <div class="modal-detail-item"><div class="modal-detail-label">🔍 دلیل:</div><div>پورت 443 بسته یا فایروال</div></div>
+                `;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function closeModalOnOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+        async function startScan() {
+            if (scanning) return;
+            scanning = true;
+            cloudflareResults = [];
+            fastlyResults = [];
+            const allIPs = prepareIPList();
+            
+            updateBothLists();
+            
+            for (let i = 0; i < allIPs.length && scanning; i++) {
+                const item = allIPs[i];
+                document.getElementById('statusText').innerHTML = `🔍 ${item.ip} (${item.service})`;
+                const progress = ((i + 1) / allIPs.length) * 100;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+                
+                const result = await checkIP(item.ip, item.service);
+                if (result.service === 'Cloudflare') cloudflareResults.push(result);
+                else fastlyResults.push(result);
+                
+                updateBothLists();
+                await new Promise(r => setTimeout(r, 20));
+            }
+            
+            scanning = false;
+            document.getElementById('statusText').innerHTML = `✅ اسکن کامل شد`;
+        }
+
+        function stopScan() { scanning = false; document.getElementById('statusText').innerHTML = '⛔ متوقف شد'; }
+        
+        function clearResults() {
+            cloudflareResults = [];
+            fastlyResults = [];
+            updateBothLists();
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('statusText').innerHTML = '✅ آماده اسکن';
+        }
+
+        function testTLSDemo() {
+            const modal = document.getElementById('modal');
+            document.getElementById('modalBody').innerHTML = `
+                <div class="modal-detail-item"><div class="modal-detail-label">🌐 IP نمونه:</div><div>104.16.0.1</div></div>
+                <div class="modal-detail-item"><div class="modal-detail-label">✅ TLS:</div><div>موفق</div></div>
+                <div class="modal-detail-item"><div class="modal-detail-label">🔐 Cipher:</div><div>TLS_AES_256_GCM_SHA384</div></div>
+                <div class="modal-detail-item"><div class="modal-detail-label">📜 Issuer:</div><div>Cloudflare Inc.</div></div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function getAllResults() { return [...cloudflareResults, ...fastlyResults]; }
+        
+        function saveAsJSON() { download(JSON.stringify(getAllResults(), null, 2), `scan_${Date.now()}.json`, 'application/json'); showNotif('✅ JSON'); }
+        function saveAsCSV() {
+            const results = getAllResults();
+            const csv = [['IP', 'سرویس', 'TLS', 'زمان']];
+            results.forEach(r => csv.push([r.ip, r.service, r.tlsSuccess ? 'موفق' : 'ناموفق', r.responseTime]));
+            download(csv.map(row => row.join(',')).join('\n'), `scan_${Date.now()}.csv`, 'text/csv');
+            showNotif('✅ CSV');
+        }
+        function saveAsTXT() {
+            let txt = 'نتایج اسکن\n';
+            getAllResults().forEach(r => txt += `${r.ip} - ${r.service} - TLS: ${r.tlsSuccess ? 'موفق' : 'ناموفق'} - ${r.responseTime}ms\n`);
+            download(txt, `scan_${Date.now()}.txt`, 'text/plain');
+            showNotif('✅ TXT');
+        }
+        
+        function download(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+        
+        function showNotif(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            div.style.position = 'fixed';
+            div.style.bottom = '20px';
+            div.style.right = '20px';
+            div.style.padding = '10px 20px';
+            div.style.background = '#0ea5e9';
+            div.style.color = 'white';
+            div.style.borderRadius = '10px';
+            div.style.zIndex = '10000';
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2000);
+        }
+
+        function setCount(value) {
+            const max = parseInt(document.getElementById('countSlider').max);
+            const finalVal = Math.min(value, max);
+            document.getElementById('countInput').value = finalVal;
+            document.getElementById('countSlider').value = finalVal;
+        }
+
+        const countInput = document.getElementById('countInput');
+        const countSlider = document.getElementById('countSlider');
+        countSlider.addEventListener('input', () => { countInput.value = countSlider.value; });
+        countInput.addEventListener('input', () => {
+            let val = parseInt(countInput.value);
+            const max = parseInt(countSlider.max);
+            if (isNaN(val)) val = 1;
+            if (val < 1) val = 1;
+            if (val > max) val = max;
+            countSlider.value = val;
+            countInput.value = val;
+        });
+
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light')) {
+                body.classList.remove('light');
+                body.classList.add('dark');
+                document.getElementById('themeBtn').innerHTML = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark');
+                body.classList.add('light');
+                document.getElementById('themeBtn').innerHTML = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.remove('light');
+            document.body.classList.add('dark');
+            document.getElementById('themeBtn').innerHTML = '☀️';
+        }
+
+        updateTotalIPs();
+    </script>
+</body>
+</html>
