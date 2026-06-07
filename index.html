@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>اسکنر حرفه‌ای کلودفلر و فستلی - محاسبه دقیق CIDR</title>
+    <title>اسکنر حرفه‌ای کلودفلر و فستلی - نسخه تصادفی از همه رنج‌ها</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css');
         
@@ -471,7 +471,7 @@
     <div class="container">
         <div class="header">
             <h1>🚀 اسکنر حرفه‌ای کلودفلر و فستلی</h1>
-            <p>محاسبه دقیق CIDR | پشتیبانی از میلیون‌ها IP | شبیه‌سازی هوشمند TLS</p>
+            <p>✅ نسخه تصادفی - انتخاب IP از همه رنج‌ها به صورت Random | محاسبه دقیق CIDR</p>
         </div>
 
         <div class="filter-card">
@@ -485,7 +485,7 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label class="filter-label">🔢 تعداد IP برای جستجو</label>
+                    <label class="filter-label">🔢 تعداد IP برای جستجو (تصادفی از همه رنج‌ها)</label>
                     <div class="count-control">
                         <input type="number" id="countInput" class="count-input" min="1" step="1" value="100">
                         <input type="range" id="countSlider" class="count-slider" min="1" max="10000" step="100" value="100">
@@ -504,7 +504,7 @@
         </div>
 
         <div class="controls">
-            <button class="btn-start" onclick="startScan()">▶ شروع اسکن</button>
+            <button class="btn-start" onclick="startScan()">▶ شروع اسکن (تصادفی)</button>
             <button class="btn-stop" onclick="stopScan()">⏹ توقف اسکن</button>
             <button class="btn-tls" onclick="testTLSDemo()">🔒 تست TLS</button>
             <button class="btn-clear" onclick="clearResults()">🗑 پاک کردن</button>
@@ -519,7 +519,7 @@
                 <div class="stat">✅ موفق: <span id="successCount">0</span></div>
                 <div class="stat">❌ ناموفق: <span id="errorCount">0</span></div>
             </div>
-            <div class="status-text" id="statusText">✅ آماده اسکن</div>
+            <div class="status-text" id="statusText">✅ آماده اسکن (تصادفی)</div>
         </div>
 
         <div class="dual-results">
@@ -575,15 +575,13 @@
             const [, prefix] = cidr.split('/');
             const prefixNum = parseInt(prefix);
             if (isNaN(prefixNum)) return 1;
-            // 2 به توان (32 - prefix) = تعداد IPها
             return Math.pow(2, 32 - prefixNum);
         }
 
-        // تبدیل CIDR به اولین IP (برای شروع)
+        // تبدیل CIDR به اولین IP
         function cidrToFirstIP(cidr) {
             const [ip, prefix] = cidr.split('/');
             const parts = ip.split('.').map(Number);
-            // برای subnet، اولین IP شبکه است
             return parts.join('.');
         }
 
@@ -596,6 +594,41 @@
                 parts[i] = 0;
             }
             return parts.join('.');
+        }
+
+        // ========== تابع جدید: تولید تصادفی IP از همه رنج‌ها ==========
+        function getAllIPsFromCIDRs(cidrs) {
+            const allIPs = [];
+            for (const cidr of cidrs) {
+                let currentIP = cidrToFirstIP(cidr);
+                const totalInCIDR = cidrToIPCount(cidr);
+                for (let i = 0; i < totalInCIDR; i++) {
+                    allIPs.push(currentIP);
+                    currentIP = nextIP(currentIP);
+                }
+            }
+            return allIPs;
+        }
+
+        // شافل کردن آرایه (Randomize)
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // تولید لیست IP به صورت تصادفی از همه رنج‌ها
+        function generateIPsRandomFromCIDRs(cidrs, maxCount, serviceName) {
+            // همه IPها رو از همه رنج‌ها میگیریم
+            const allIPs = getAllIPsFromCIDRs(cidrs);
+            // تصادفی میکنیم
+            const shuffledIPs = shuffleArray([...allIPs]);
+            // به اندازه نیاز برمیداریم
+            const selectedIPs = shuffledIPs.slice(0, maxCount);
+            // تبدیل به فرمت نهایی با سرویس
+            return selectedIPs.map(ip => ({ ip, service: serviceName }));
         }
 
         // محاسبه کل IPها برای یک سرویس
@@ -621,7 +654,7 @@
                 totalIPs = getTotalIPsForService('cloudflare') + getTotalIPsForService('fastly');
             }
             
-            const maxCount = Math.min(totalIPs, 50000); // حداکثر 50000 برای نمایش
+            const maxCount = Math.min(totalIPs, 50000);
             
             const slider = document.getElementById('countSlider');
             const input = document.getElementById('countInput');
@@ -634,60 +667,42 @@
             
             const infoDiv = document.getElementById('infoMessage');
             infoDiv.innerHTML = `📊 تعداد کل IPهای موجود: ${totalIPs.toLocaleString()} عدد<br>
-                                 💡 حداکثر قابل انتخاب برای اسکن: ${maxCount.toLocaleString()} عدد<br>
-                                 ⚠️ به دلیل حجم بالا، اسکن بیش از ۵۰,۰۰۰ IP زمانبر خواهد بود`;
+                                 🎲 نحوه انتخاب: کاملاً تصادفی از همه رنج‌ها<br>
+                                 💡 حداکثر قابل انتخاب: ${maxCount.toLocaleString()} عدد<br>
+                                 ⚠️ اسکن بیش از ۵۰,۰۰۰ IP زمانبر خواهد بود`;
             infoDiv.classList.add('info-message');
             
             return totalIPs;
         }
 
-        // تولید لیست IPها بر اساس CIDR و تعداد محدود
-        function generateIPsFromCIDRs(cidrs, maxCount) {
-            const ips = [];
-            
-            for (const cidr of cidrs) {
-                if (ips.length >= maxCount) break;
-                
-                let currentIP = cidrToFirstIP(cidr);
-                const totalInCIDR = cidrToIPCount(cidr);
-                const toTake = Math.min(totalInCIDR, maxCount - ips.length);
-                
-                for (let i = 0; i < toTake; i++) {
-                    ips.push(currentIP);
-                    currentIP = nextIP(currentIP);
-                }
-            }
-            
-            return ips;
-        }
-
-        // آماده‌سازی لیست IP برای اسکن
+        // آماده‌سازی لیست IP برای اسکن (نسخه تصادفی)
         function prepareIPList() {
             const service = document.getElementById('serviceSelect').value;
             let maxCount = parseInt(document.getElementById('countInput').value);
             if (isNaN(maxCount)) maxCount = 100;
             
-            const ips = [];
+            let allItems = [];
             
-            if (service === 'both' || service === 'cloudflare') {
-                const cfIPs = generateIPsFromCIDRs(cloudflareCIDRs, maxCount);
-                cfIPs.forEach(ip => {
-                    if (ips.length < maxCount) {
-                        ips.push({ ip, service: 'Cloudflare' });
-                    }
-                });
+            if (service === 'both') {
+                // نصف به نصف از هر سرویس
+                const cfCount = Math.floor(maxCount / 2);
+                const flCount = maxCount - cfCount;
+                
+                const cfIPs = generateIPsRandomFromCIDRs(cloudflareCIDRs, cfCount, 'Cloudflare');
+                const flIPs = generateIPsRandomFromCIDRs(fastlyCIDRs, flCount, 'Fastly');
+                
+                allItems = [...cfIPs, ...flIPs];
+                // دوباره شافل کن تا کاملاً مخلوط بشه
+                allItems = shuffleArray(allItems);
+            } 
+            else if (service === 'cloudflare') {
+                allItems = generateIPsRandomFromCIDRs(cloudflareCIDRs, maxCount, 'Cloudflare');
+            } 
+            else if (service === 'fastly') {
+                allItems = generateIPsRandomFromCIDRs(fastlyCIDRs, maxCount, 'Fastly');
             }
             
-            if (service === 'both' || service === 'fastly') {
-                const flIPs = generateIPsFromCIDRs(fastlyCIDRs, maxCount);
-                flIPs.forEach(ip => {
-                    if (ips.length < maxCount) {
-                        ips.push({ ip, service: 'Fastly' });
-                    }
-                });
-            }
-            
-            return ips;
+            return allItems;
         }
 
         // شبیه‌سازی TLS
@@ -807,7 +822,7 @@
             
             for (let i = 0; i < allIPs.length && scanning; i++) {
                 const item = allIPs[i];
-                document.getElementById('statusText').innerHTML = `🔍 ${item.ip} (${item.service})`;
+                document.getElementById('statusText').innerHTML = `🔍 ${item.ip} (${item.service}) - 🎲 تصادفی از همه رنج‌ها`;
                 const progress = ((i + 1) / allIPs.length) * 100;
                 document.getElementById('progressFill').style.width = `${progress}%`;
                 
@@ -820,7 +835,7 @@
             }
             
             scanning = false;
-            document.getElementById('statusText').innerHTML = `✅ اسکن کامل شد`;
+            document.getElementById('statusText').innerHTML = `✅ اسکن کامل شد - ${allIPs.length} آیپی از همه رنج‌ها به صورت تصادفی`;
         }
 
         function stopScan() { scanning = false; document.getElementById('statusText').innerHTML = '⛔ متوقف شد'; }
@@ -830,7 +845,7 @@
             fastlyResults = [];
             updateBothLists();
             document.getElementById('progressFill').style.width = '0%';
-            document.getElementById('statusText').innerHTML = '✅ آماده اسکن';
+            document.getElementById('statusText').innerHTML = '✅ آماده اسکن (تصادفی)';
         }
 
         function testTLSDemo() {
@@ -846,19 +861,20 @@
 
         function getAllResults() { return [...cloudflareResults, ...fastlyResults]; }
         
-        function saveAsJSON() { download(JSON.stringify(getAllResults(), null, 2), `scan_${Date.now()}.json`, 'application/json'); showNotif('✅ JSON'); }
+        function saveAsJSON() { download(JSON.stringify(getAllResults(), null, 2), `scan_random_${Date.now()}.json`, 'application/json'); showNotif('✅ JSON ذخیره شد'); }
         function saveAsCSV() {
             const results = getAllResults();
-            const csv = [['IP', 'سرویس', 'TLS', 'زمان']];
+            const csv = [['IP', 'سرویس', 'TLS', 'زمان (ms)']];
             results.forEach(r => csv.push([r.ip, r.service, r.tlsSuccess ? 'موفق' : 'ناموفق', r.responseTime]));
-            download(csv.map(row => row.join(',')).join('\n'), `scan_${Date.now()}.csv`, 'text/csv');
-            showNotif('✅ CSV');
+            download(csv.map(row => row.join(',')).join('\n'), `scan_random_${Date.now()}.csv`, 'text/csv');
+            showNotif('✅ CSV ذخیره شد');
         }
         function saveAsTXT() {
-            let txt = 'نتایج اسکن\n';
-            getAllResults().forEach(r => txt += `${r.ip} - ${r.service} - TLS: ${r.tlsSuccess ? 'موفق' : 'ناموفق'} - ${r.responseTime}ms\n`);
-            download(txt, `scan_${Date.now()}.txt`, 'text/plain');
-            showNotif('✅ TXT');
+            let txt = 'نتایج اسکن تصادفی\n';
+            txt += '========================\n';
+            getAllResults().forEach(r => txt += `${r.ip} | ${r.service} | TLS: ${r.tlsSuccess ? 'موفق' : 'ناموفق'} | ${r.responseTime}ms\n`);
+            download(txt, `scan_random_${Date.now()}.txt`, 'text/plain');
+            showNotif('✅ TXT ذخیره شد');
         }
         
         function download(content, filename, type) {
@@ -887,7 +903,12 @@
 
         function setCount(value) {
             const max = parseInt(document.getElementById('countSlider').max);
-            const finalVal = Math.min(value, max);
+            let finalVal;
+            if (value === 'all') {
+                finalVal = max;
+            } else {
+                finalVal = Math.min(parseInt(value), max);
+            }
             document.getElementById('countInput').value = finalVal;
             document.getElementById('countSlider').value = finalVal;
         }
