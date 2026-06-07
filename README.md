@@ -2,11 +2,11 @@
 
 - اسکنر تحت وب کلودفلر و فستلی به همراه TLS به صورت Random IP
 
-<center>
+
 ![HTML5 Badge](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
 ![JavaScript Badge](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?logo=githubpages&logoColor=white)
-</center>
+
 
 > **🔍 یک ابزار تعاملی و کاملاً سمت کاربر برای شبیه‌سازی اسکن IPهای شبکه‌های توزیع محتوا (CDN) کلودفلر و فستلی**
 
